@@ -188,14 +188,40 @@ ON (ce.emp_no = de.emp_no)
 INNER JOIN departments AS d
 ON (de.dept_no = d.dept_no);
 
---Skill Drill
+--MODULE CHALLENGE
+--Create table 
 SELECT ce.emp_no,
 	ce.first_name,
 	ce.last_name,
-	d.dept_name	
-FROM current_emp as ce
-INNER JOIN dept_emp AS de
-ON (ce.emp_no = de.emp_no)
-INNER JOIN departments AS d
-ON (de.dept_no = d.dept_no)
-WHERE d.dept_name IN ('Sales', 'Development');
+	titles.title,
+	salaries.from_date,
+	salaries.salary
+INTO number_of_titles_retiring
+FROM salaries
+RIGHT JOIN titles
+ON (salaries.emp_no = titles.emp_no)
+INNER JOIN current_emp AS ce
+ON (ce.emp_no = salaries.emp_no);
+
+--Exclude the rows of data containing duplicate titles
+SELECT notr.emp_no,
+	notr.first_name,
+	notr.last_name,
+	COUNT(*) AS CNT
+FROM number_of_titles_retiring as notr
+GROUP BY notr.emp_no,
+	notr.first_name,
+	notr.last_name
+HAVING COUNT(*) > 1;
+
+--Delete duplicate rows
+WITH cte as (SELECT emp_no, first_name, last_name, from_date, title, ROW_NUMBER() OVER
+	 	(PARTITION BY (first_name, last_name)
+	  	ORDER BY from_date DESC) rn
+	  	FROM number_of_titles_retiring
+	 )
+
+SELECT emp_no, first_name, last_name, from_date, title
+INTO updated_number_of_titles_retiring
+FROM cte tp WHERE rn = 1
+ORDER BY emp_no
